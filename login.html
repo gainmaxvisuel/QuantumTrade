@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Connexion - Quantum Trade</title>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+margin:0;
+font-family:Arial;
+background:linear-gradient(180deg,#0b1e3c,#0e2a5c);
+color:white;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+}
+
+.card{
+width:90%;
+max-width:400px;
+}
+
+.logo{
+font-size:22px;
+font-weight:bold;
+margin-bottom:10px;
+}
+
+.logo span{
+color:#4da3ff;
+}
+
+h1{
+margin:10px 0;
+font-size:28px;
+}
+
+.input{
+width:100%;
+padding:15px;
+margin:10px 0;
+border-radius:10px;
+border:1px solid rgba(255,255,255,0.3);
+background:transparent;
+color:white;
+outline:none;
+}
+
+.btn{
+width:100%;
+padding:15px;
+border:none;
+border-radius:10px;
+background:linear-gradient(90deg,#3a7bd5,#3a5bd5);
+color:white;
+font-weight:bold;
+font-size:16px;
+margin-top:10px;
+cursor:pointer;
+}
+
+.error{
+color:#ff6b6b;
+font-size:13px;
+}
+
+a{
+color:#4da3ff;
+text-decoration:none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<div class="logo">⚡ <span>Quantum Trade</span></div>
+
+<h1>Se connecter</h1>
+
+<p>Pas de compte ? <a href="index.html">S'inscrire</a></p>
+
+<input type="email" id="email" class="input" placeholder="E-mail">
+<div id="emailError" class="error"></div>
+
+<input type="password" id="password" class="input" placeholder="Mot de passe">
+<div id="passError" class="error"></div>
+
+<button class="btn" onclick="login()">SE CONNECTER</button>
+
+</div>
+
+<script>
+
+const client = supabase.createClient(
+"https://vapzbrnfkzuzyroebehh.supabase.co",
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhcHpicm5ma3p1enlyb2ViZWhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMDI2NjksImV4cCI6MjA5MTc3ODY2OX0.H3ieup8113Iz832VwbbYgXSAsR_MIXW8qYSsK1MSAwA"
+);
+
+function clearErrors(){
+document.getElementById("emailError").innerText = "";
+document.getElementById("passError").innerText = "";
+}
+
+async function login(){
+
+clearErrors();
+
+let email = document.getElementById("email").value.trim();
+let password = document.getElementById("password").value.trim();
+
+let hasError = false;
+
+/* VALIDATION */
+
+if(email === ""){
+document.getElementById("emailError").innerText = "Email obligatoire";
+hasError = true;
+}
+
+if(password === ""){
+document.getElementById("passError").innerText = "Mot de passe obligatoire";
+hasError = true;
+}
+
+if(hasError) return;
+
+/* LOGIN DIRECT TABLE */
+
+let { data, error } = await client
+.from("users")
+.select("*")
+.eq("email", email)
+.eq("password", password)
+.single();
+
+/* ERREUR */
+
+if(error || !data){
+document.getElementById("emailError").innerText = "Identifiants incorrects";
+return;
+}
+
+/* SUCCESS */
+
+let user = data;
+
+/* STOCKAGE */
+
+localStorage.setItem("user_id", user.id);
+localStorage.setItem("email", user.email);
+localStorage.setItem("points", user.points);
+localStorage.setItem("balance", user.balance);
+localStorage.setItem("referral_code", user.referral_code);
+
+/* REDIRECTION */
+
+window.location.href = "dashboard.html";
+
+}
+
+</script>
+
+</body>
+</html>

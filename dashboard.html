@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Dashboard</title>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+<style>
+
+body{
+margin:0;
+font-family:Arial;
+background:#f5f5f5;
+}
+
+/* HEADER */
+.header{
+background:linear-gradient(90deg,#7b2ff7,#f107a3);
+color:white;
+padding:20px;
+border-radius:0 0 20px 20px;
+}
+
+.profile{
+display:flex;
+align-items:center;
+}
+
+.avatar{
+width:60px;
+height:60px;
+border-radius:50%;
+background:white;
+margin-right:10px;
+}
+
+/* CARD */
+.card{
+background:white;
+margin:15px;
+padding:15px;
+border-radius:15px;
+}
+
+/* BALANCE */
+.balance{
+font-size:28px;
+color:red;
+font-weight:bold;
+}
+
+/* MENU */
+.menu{
+padding:15px;
+}
+
+.menu-item{
+background:white;
+padding:15px;
+margin-bottom:10px;
+border-radius:12px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+cursor:pointer;
+}
+
+/* REF */
+.ref-box{
+background:#f1f1f1;
+padding:10px;
+border-radius:8px;
+font-size:13px;
+word-break:break-all;
+}
+
+.copy-btn{
+margin-top:8px;
+padding:10px;
+border:none;
+background:#7b2ff7;
+color:white;
+border-radius:8px;
+width:100%;
+}
+
+/* POPUP */
+.popup{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.6);
+display:none;
+justify-content:center;
+align-items:center;
+z-index:999;
+}
+
+.popup-box{
+background:white;
+padding:20px;
+border-radius:12px;
+width:90%;
+max-height:80%;
+overflow:auto;
+text-align:center;
+}
+
+/* TX */
+.tx{
+background:#f9f9f9;
+padding:12px;
+margin:8px 0;
+border-radius:10px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+.tx-left{
+text-align:left;
+}
+
+.tx-amount.plus{
+color:green;
+font-weight:bold;
+}
+
+.tx-amount.minus{
+color:red;
+font-weight:bold;
+}
+
+input{
+width:100%;
+padding:10px;
+margin-top:5px;
+border-radius:8px;
+border:1px solid #ccc;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="header">
+<div class="profile">
+<div class="avatar"></div>
+<div>
+<div id="email"></div>
+<div>Code: <span id="ref"></span></div>
+</div>
+</div>
+</div>
+
+<div class="card">
+<div>Solde disponible</div>
+<div class="balance" id="balance">0 FCFA</div>
+<div style="font-size:13px;color:gray">
+Points: <span id="points">0</span>
+</div>
+<button class="copy-btn" onclick="convert()">Convertir les points</button>
+</div>
+
+<div class="card">
+<h3>🎁 Invitez vos amis</h3>
+<div class="ref-box" id="refLink"></div>
+<button class="copy-btn" onclick="copyLink()">📋 Copier le lien</button>
+</div>
+
+<div class="menu">
+<div class="menu-item" onclick="watchAd(1)">🎥 Pub 1 →</div>
+<div class="menu-item" onclick="watchAd(2)">📺 Pub 2 →</div>
+<div class="menu-item" onclick="watchAd(3)">📢 Pub 3 →</div>
+<div class="menu-item" onclick="openTx()">📊 Transactions →</div>
+<div class="menu-item" onclick="openWithdraw()">💸 Retrait →</div>
+<div class="menu-item" onclick="logout()">🚪 Déconnexion →</div>
+</div>
+
+<!-- POPUPS -->
+<div id="popup" class="popup">
+<div class="popup-box">
+<p id="popupText"></p>
+<button onclick="closePopup()">OK</button>
+</div>
+</div>
+
+<div id="rewardPopup" class="popup">
+<div class="popup-box">
+<h3>🎉 Félicitations</h3>
+<p>Vous avez gagné 1 point</p>
+<button onclick="claimReward()">Réclamer</button>
+</div>
+</div>
+
+<div id="txPopup" class="popup">
+<div class="popup-box">
+<h3>📊 Historique</h3>
+<div id="txList"></div>
+<button onclick="closeTx()">Fermer</button>
+</div>
+</div>
+
+<script>
+
+const client = supabase.createClient("https://vapzbrnfkzuzyroebehh.supabase.co","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhcHpicm5ma3p1enlyb2ViZWhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMDI2NjksImV4cCI6MjA5MTc3ODY2OX0.H3ieup8113Iz832VwbbYgXSAsR_MIXW8qYSsK1MSAwA");
+
+let user_id = localStorage.getItem("user_id");
+
+/* USER */
+async function loadUser(){
+
+let { data } = await client.from("users").select("*").eq("id", user_id).single();
+
+if(!data){
+showPopup("Erreur chargement utilisateur");
+return;
+}
+
+document.getElementById("email").innerText = data.email || "-";
+document.getElementById("points").innerText = data.points || 0;
+document.getElementById("balance").innerText = (data.balance || 0) + " FCFA";
+document.getElementById("ref").innerText = data.referral_code || "-";
+
+let link = "https://quantum-trade-rho.vercel.app/register.html?ref=" + data.referral_code;
+document.getElementById("refLink").innerText = link;
+
+}
+loadUser();
+
+/* COPY */
+function copyLink(){
+let text = document.getElementById("refLink").innerText;
+navigator.clipboard.writeText(text);
+showPopup("✅ Lien copié ! Partagez-le pour gagner des commissions.");
+}
+
+/* POPUP */
+function showPopup(t){
+document.getElementById("popupText").innerText = t;
+document.getElementById("popup").style.display = "flex";
+}
+function closePopup(){
+document.getElementById("popup").style.display = "none";
+}
+
+/* ADS */
+const ads = [
+"https://cursecrookadvantage.com/p9sdzgizsb?key=a2a81310ae96cebab0c5887a003c88ce",
+"https://cursecrookadvantage.com/ajp63gp3j9?key=c7691cc205e810aaf447ae60be05da23",
+"https://cursecrookadvantage.com/i3xkdpihw4?key=a2a81310ae96cebab0c5887a003c88ce"
+];
+
+window.addEventListener("focus", checkAd);
+
+function watchAd(i){
+
+let start = localStorage.getItem("ad_time");
+
+if(start){
+let diff = (Date.now() - start)/1000;
+
+if(diff < 30){
+showPopup("⏳ Une publicité est déjà en cours.");
+return;
+}else{
+localStorage.removeItem("ad_time");
+}
+}
+
+localStorage.setItem("ad_time", Date.now());
+window.open(ads[i-1], "_blank");
+
+showPopup("⏳ Regardez la publicité pendant 30 secondes.");
+}
+
+function checkAd(){
+
+let start = localStorage.getItem("ad_time");
+if(!start) return;
+
+let diff = (Date.now() - start)/1000;
+
+if(diff >= 30){
+document.getElementById("rewardPopup").style.display = "flex";
+localStorage.removeItem("ad_time");
+}
+}
+
+/* REWARD */
+async function claimReward(){
+
+await client.rpc("add_earn", {
+u_user_id: user_id,
+u_amount: 1,
+u_source: "ads"
+});
+
+document.getElementById("rewardPopup").style.display = "none";
+
+showPopup("🎉 Récompense ajoutée !");
+loadUser();
+
+}
+
+/* CONVERT */
+async function convert(){
+let { data } = await client.rpc("convert_points", { u_user_id: user_id });
+showPopup(data);
+loadUser();
+}
+
+/* TRANSACTIONS */
+async function openTx(){
+
+document.getElementById("txPopup").style.display = "flex";
+
+let { data } = await client
+.from("transactions")
+.select("*")
+.eq("user_id", user_id)
+.order("created_at", {ascending:false});
+
+let html = "";
+
+data.forEach(tx=>{
+
+let type = tx.amount > 0 ? "plus" : "minus";
+let sign = tx.amount > 0 ? "+" : "";
+
+html += `
+<div class="tx">
+<div class="tx-left">
+<div>${tx.description}</div>
+<div style="font-size:12px;color:gray">${new Date(tx.created_at).toLocaleString()}</div>
+</div>
+<div class="tx-amount ${type}">
+${sign}${tx.amount} FCFA
+</div>
+</div>
+`;
+
+});
+
+document.getElementById("txList").innerHTML = html;
+
+}
+
+function closeTx(){
+document.getElementById("txPopup").style.display = "none";
+}
+
+/* RETRAIT */
+function openWithdraw(){
+window.location.href = "withdraw.html";
+}
+
+/* LOGOUT */
+function logout(){
+localStorage.clear();
+window.location.href = "index.html";
+}
+
+</script>
+
+</body>
+</html>

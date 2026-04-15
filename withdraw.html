@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Retrait</title>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+<style>
+
+body{
+margin:0;
+font-family:Arial;
+background:#f5f5f5;
+}
+
+/* HEADER */
+.header{
+text-align:center;
+padding:20px;
+font-size:22px;
+font-weight:bold;
+color:#2e7d32;
+}
+
+/* FORM */
+.container{
+padding:15px;
+}
+
+.label{
+font-weight:bold;
+margin:10px 0 5px;
+display:block;
+}
+
+.select, .input{
+width:100%;
+padding:15px;
+border-radius:12px;
+border:1px solid #ddd;
+margin-bottom:10px;
+background:white;
+}
+
+/* INFO BOX */
+.info{
+background:#eee;
+padding:15px;
+border-radius:12px;
+margin-top:10px;
+font-size:14px;
+}
+
+/* BUTTON */
+.btn{
+width:100%;
+padding:15px;
+border:none;
+border-radius:12px;
+background:#2e7d32;
+color:white;
+font-size:16px;
+margin-top:15px;
+}
+
+/* POPUP */
+.popup{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.6);
+display:none;
+justify-content:center;
+align-items:center;
+}
+
+.popup-box{
+background:white;
+padding:20px;
+border-radius:10px;
+text-align:center;
+width:80%;
+}
+
+.popup-box button{
+margin-top:10px;
+padding:10px;
+border:none;
+background:#7b2ff7;
+color:white;
+border-radius:8px;
+width:100%;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="header">💸 Retrait</div>
+
+<div class="container">
+
+<label class="label">PAYS</label>
+<select id="country" class="select">
+<option value="">Choisir pays</option>
+<option>Burkina Faso</option>
+<option>Côte d'Ivoire</option>
+<option>Mali</option>
+<option>Niger</option>
+<option>Sénégal</option>
+</select>
+
+<label class="label">OPÉRATEUR</label>
+<select id="operator" class="select">
+<option value="">Choisir opérateur</option>
+<option>Orange Money</option>
+<option>MTN Mobile Money</option>
+<option>Moov Money</option>
+<option>Wave</option>
+<option>Telecel Money</option>
+</select>
+
+<label class="label">NUMÉRO</label>
+<input id="phone" class="input" placeholder="Ex: 0700000000">
+
+<label class="label">MONTANT</label>
+<input id="amount" class="input" placeholder="Minimum 1500 FCFA">
+
+<div class="info">
+1. Montant minimum : <b style="color:green">1500 FCFA</b><br><br>
+2. Frais de retrait : <b style="color:green">200 FCFA</b><br><br>
+3. Vérifiez vos informations avant validation<br><br>
+4. En cas de problème contactez le support
+</div>
+
+<button class="btn" onclick="sendWithdraw()">Valider retrait</button>
+
+</div>
+
+<!-- POPUP -->
+<div id="popup" class="popup">
+<div class="popup-box">
+<p id="popupText"></p>
+<button onclick="closePopup()">OK</button>
+</div>
+</div>
+
+<script>
+
+const client = supabase.createClient(
+"https://vapzbrnfkzuzyroebehh.supabase.co",
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhcHpicm5ma3p1enlyb2ViZWhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMDI2NjksImV4cCI6MjA5MTc3ODY2OX0.H3ieup8113Iz832VwbbYgXSAsR_MIXW8qYSsK1MSAwA"
+);
+
+let user_id = localStorage.getItem("user_id");
+
+/* POPUP */
+function showPopup(text){
+document.getElementById("popupText").innerText = text;
+document.getElementById("popup").style.display = "flex";
+}
+function closePopup(){
+document.getElementById("popup").style.display = "none";
+}
+
+/* RETRAIT */
+async function sendWithdraw(){
+
+let country = document.getElementById("country").value;
+let operator = document.getElementById("operator").value;
+let phone = document.getElementById("phone").value;
+let amount = parseInt(document.getElementById("amount").value);
+
+/* VALIDATION */
+if(!country || !operator || !phone || !amount){
+showPopup("Veuillez remplir tous les champs");
+return;
+}
+
+/* APPEL SQL */
+let { data, error } = await client.rpc("request_withdraw", {
+u_user_id: user_id,
+u_name: country, // tu peux changer si tu veux vrai nom
+u_phone: phone,
+u_operator: operator,
+u_amount: amount
+});
+
+if(error){
+showPopup("Erreur : " + error.message);
+return;
+}
+
+showPopup(data);
+
+}
+
+</script>
+
+</body>
+</html>
